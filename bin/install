@@ -15,7 +15,7 @@ install() {
 
   mkdir -p "${bin_install_path}"
 
-  local binary="oc-$(get_arch ${version})"
+  local binary="openshift-install"
 
   echo "Downloading OpenShift Client ${version} from ${download_url} to ${bin_install_path}"
   install_executable "${download_url}" "${bin_install_path}" "${binary}" "${version}"
@@ -30,11 +30,11 @@ install_executable() {
   case "$(uname -s)" in
       Darwin|Linux)
         if [[ $version == v4* ]]; then
-          cd ${path} && tar xzfv ${path}/${binary} oc && cd -
+          cd ${path} && tar xzfv ${path}/${binary} openshift-install && cd -
         elif [[ $version == v3* ]]; then
           cd ${path} && tar xzfv ${path}/${binary} --wildcards --no-anchored '**/oc' --strip 1 && cd -
         else
-          echo "Unknown OC major version"
+          echo "Unknown Openshift-install major version"
         fi
         ;;
 
@@ -49,7 +49,7 @@ install_executable() {
 
   esac
 
-  rm -rf ${bin_install_path}/${binary}
+#   rm -rf ${bin_install_path}/${binary}
 }
 
 get_hash() {

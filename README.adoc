@@ -3,13 +3,23 @@
 
 https://github.com/openshift/installer[Openshift-installer] plugin for https://github.com/asdf-vm/asdf[asdf] version manager.
 
+Based on bartoszmajsak's asdf plugin for the https://github.com/bartoszmajsak/asdf-oc[oc cli]
+
 == Install
 
 [source,bash]
 ----
-asdf plugin-add openshift-installer https://github.com/moosecanswim/asdf-openshift-installer.git
+asdf plugin-add openshift-install https://github.com/moosecanswim/asdf-openshift-installer.git
 ----
 
 == Use
 
 Check out the https://github.com/asdf-vm/asdf#asdf-[asdf README] for instructions on how to install and manage versions of variety of tools it supports.
+
+[source,bash]
+----
+asdf list all openshift-install
+asdf install openshift-install v4.7.8
+asdf global openshift-install v4.7.8
+openshift-install -h
+----
