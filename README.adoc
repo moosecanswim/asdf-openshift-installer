@@ -7,7 +7,7 @@ https://github.com/openshift/installer[Openshift-installer] plugin for https://g
 
 [source,bash]
 ----
-asdf plugin-add oc https://github.com/moosecanswim/asdf-openshift-installer.git
+asdf plugin-add openshift-installer https://github.com/moosecanswim/asdf-openshift-installer.git
 ----
 
 == Use
