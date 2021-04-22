@@ -1,0 +1,15 @@
+= asdf-oc
+
+
+https://github.com/openshift/installer[Openshift-installer] plugin for https://github.com/asdf-vm/asdf[asdf] version manager.
+
+== Install
+
+[source,bash]
+----
+asdf plugin-add oc https://github.com/moosecanswim/asdf-openshift-installer.git
+----
+
+== Use
+
+Check out the https://github.com/asdf-vm/asdf#asdf-[asdf README] for instructions on how to install and manage versions of variety of tools it supports.

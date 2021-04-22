@@ -1,0 +1,125 @@
+#!/usr/bin/env bash
+
+set -e
+set -o pipefail
+
+ASDF_INSTALL_TYPE=${ASDF_INSTALL_TYPE:-version  }
+[ -n "$ASDF_INSTALL_VERSION" ] || (>&2 echo 'Missing ASDF_INSTALL_VERSION' && exit 1)
+[ -n "$ASDF_INSTALL_PATH" ] || (>&2 echo 'Missing ASDF_INSTALL_PATH' && exit 1)
+
+install() {
+  local version=$2
+  local install_path=$3
+  local bin_install_path="$install_path/bin"
+  local download_url=$(get_download_url "${version}")
+
+  mkdir -p "${bin_install_path}"
+
+  local binary="oc-$(get_arch ${version})"
+
+  echo "Downloading OpenShift Client ${version} from ${download_url} to ${bin_install_path}"
+  install_executable "${download_url}" "${bin_install_path}" "${binary}" "${version}"
+}
+
+install_executable() {
+  local download_url=$1
+  local path=$2
+  local binary=$3
+  local version=$4
+  wget "$download_url" -O "${path}/${binary}"
+  case "$(uname -s)" in
+      Darwin|Linux)
+        if [[ $version == v4* ]]; then
+          cd ${path} && tar xzfv ${path}/${binary} oc && cd -
+        elif [[ $version == v3* ]]; then
+          cd ${path} && tar xzfv ${path}/${binary} --wildcards --no-anchored '**/oc' --strip 1 && cd -
+        else
+          echo "Unknown OC major version"
+        fi
+        ;;
+
+    #   CYGWIN*|MINGW32*|MSYS*)
+    #     cd ${path}
+    #     powershell.exe -NoP -NonI -Command "Expand-Archive '.\\${binary}' -DestinationPath ."
+    #     cd -
+    #     ;;
+      *)
+        echo "This does asdf only supports linux and mac at this time"
+        ;;
+
+  esac
+
+  rm -rf ${bin_install_path}/${binary}
+}
+
+get_hash() {
+  tag="$1"
+  tags_path=https://api.github.com/repos/openshift/origin/git/refs/tags/${tag}
+  cmd="curl -s"
+  
+  if [ -n "$GITHUB_API_TOKEN" ]; then
+    cmd="$cmd -H 'Authorization: token $GITHUB_API_TOKEN'"
+  elif [ -n "$OAUTH_TOKEN" ]; then
+    cmd="$cmd -H 'Authorization: token $OAUTH_TOKEN'"
+  fi
+
+  hashes=$(eval $cmd $tags_path | sed -n -e '/object/,$p' | grep -oE "url\": \"[^\"]*\"" | sed 's/url\": *\"//;s/\"//')
+  hash=$(eval $cmd $hashes | sed -n -e '/object/,$p' | grep -oE "sha\":\s?\".*\"," | sed 's/sha\": *\"//;s/\",//')
+
+  echo ${hash:0:7}
+}
+
+get_download_url() {
+  local version="$1"
+  local url=""
+  local platform=$(get_arch "${version}")
+
+  # If OCP v4.x there's different location to retrieve binary from
+  if [[ $version == v4* ]]; then
+    version=${version#"v"}
+    url="https://mirror.openshift.com/pub/openshift-v4/clients/ocp/${version}/openshift-install-${platform}"
+  else
+    local hash=$(get_hash "$version")
+    local filename="openshift-origin-client-tools-${version}-${hash}-${platform}"
+    url="https://github.com/openshift/origin/releases/download/${version}/${filename}"
+  fi
+
+  echo "${url}"
+}
+
+get_arch() {
+  local version="$1"
+
+  if [[ $version == v4* ]]; then
+    version=${version#"v"}
+    case "$(uname -s)" in
+      Darwin)
+        echo "mac-${version}.tar.gz"
+        ;;
+
+      Linux)
+        echo "linux-${version}.tar.gz"
+        ;;
+      *)
+        echo 'other OS'
+        ;;
+    esac
+  else
+    case "$(uname -s)" in
+
+      Darwin)
+        echo 'mac.zip'
+        ;;
+
+      Linux)
+        echo 'linux-64bit.tar.gz'
+        ;;
+      *)
+        echo 'other OS'
+        ;;
+    esac
+  fi
+  
+}
+
+install $ASDF_INSTALL_TYPE $ASDF_INSTALL_VERSION $ASDF_INSTALL_PATH

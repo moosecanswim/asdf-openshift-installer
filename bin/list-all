@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+
+releases_path_gh=https://api.github.com/repos/openshift/origin/releases
+cmd="curl -s"
+
+if [ -n "$GITHUB_API_TOKEN" ]; then
+  cmd="$cmd -H 'Authorization: token $GITHUB_API_TOKEN'"
+elif [ -n "$OAUTH_TOKEN" ]; then
+  cmd="$cmd -H 'Authorization: token $OAUTH_TOKEN'"
+fi
+
+cmd="$cmd $releases_path_gh"
+
+# From https://github.com/rbenv/ruby-build/pull/631/files#diff-fdcfb8a18714b33b07529b7d02b54f1dR942
+function sort_versions() {
+  sed 'h; s/[+-]/./g; s/.p\([[:digit:]]\)/.z\1/; s/$/.z/; G; s/\n/ /' | \
+    LC_ALL=C sort -t. -k 1,1 -k 2,2n -k 3,3n -k 4,4n -k 5,5n | awk '{print $2}'
+}
+
+# Fetch all tag names, and get only second column. Then remove all unnecesary characters.
+versions=$(eval "${cmd}" | grep -oE "tag_name\":\s?\".*\"," | sed 's/tag_name\": *\"//;s/\",//' | sort_versions)
+versions+=' '
+versions+=$(curl -s https://mirror.openshift.com/pub/openshift-v4/clients/ocp/ | grep '<td><a href' | sed -n 's/.*href="\([^"]*\).*/\1/p' | tail -n +2 \
+  | sed -n '/^[0-9]/p' | sed 's:/$::' | awk '{ print "v" $0; }' \
+  | grep -vE "(^Available versions:|-src|-dev|-latest|-stm|[-\\.]rc|-alpha|-beta|[-\\.]pre|-next|(a|b|c)[0-9]+|snapshot|master)" | sort_versions)
+
+echo ${versions}
